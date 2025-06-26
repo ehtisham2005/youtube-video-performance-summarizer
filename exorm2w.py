@@ -112,7 +112,7 @@ summary_df['prompt'] = summary_df.apply(build_prompt, axis=1)
 # ---- Gemini Response Function ----
 def generate_gemini_summary(prompt):
     try:
-        response = gemini_model.generate_content(prompt, generation_config={"max_output_tokens": 150})
+        response = gemini_model.generate_content(prompt, generation_config={"max_output_tokens": 300})
         return response.text
     except Exception as e:
         print(f"Error generating Gemini summary: {e}")
@@ -125,3 +125,42 @@ summary_df['gemini_response'] = summary_df['prompt'].head(10).apply(generate_gem
 output = summary_df[['title', 'summary', 'gemini_response']].head(10)
 output.to_csv("gemini_video_summary.csv", index=False)
 print(output)
+if output.empty:
+    print("No data to display in GUI.")
+    exit()
+
+
+#----- User interface -----
+
+# ...existing code...
+
+
+# ---- Add Tkinter GUI below this line ----
+import tkinter as tk
+from tkinter import ttk, scrolledtext
+
+def show_summary(event):
+    idx = video_combo.current()
+    if idx < 0:
+        return
+    row = output.iloc[idx]
+    summary_text.config(state='normal')
+    summary_text.delete(1.0, tk.END)
+    summary_text.insert(tk.END, f"Rule-based Summary:\n{row['summary']}\n\n")
+    summary_text.insert(tk.END, f"Gemini Summary:\n{row['gemini_response']}")
+    summary_text.config(state='disabled')
+
+root = tk.Tk()
+root.title("YouTube Video Sentiment Summaries")
+
+video_label = ttk.Label(root, text="Select Video:")
+video_label.pack(padx=10, pady=5)
+
+video_combo = ttk.Combobox(root, values=output['title'].tolist(), state="readonly", width=80)
+video_combo.pack(padx=10, pady=5)
+video_combo.bind("<<ComboboxSelected>>", show_summary)
+
+summary_text = scrolledtext.ScrolledText(root, width=100, height=20, wrap=tk.WORD, state='disabled')
+summary_text.pack(padx=10, pady=10)
+
+root.mainloop()
